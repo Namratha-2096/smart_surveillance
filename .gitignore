@@ -1,0 +1,33 @@
+# ── Python ──
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# ── ONNX & Model weights (large binary files) ──
+*.onnx
+*.pt
+
+# ── Output data ──
+output/
+*.avi
+*.mp4
+
+# ── IDE ──
+.vscode/
+.idea/
+
+# ── OS ──
+.DS_Store
+Thumbs.db
+
+# ── Node / Dashboard ──
+dashboard/node_modules/
+dashboard/dist/
+
+# ── Misc ──
+*.zip
+*.log
