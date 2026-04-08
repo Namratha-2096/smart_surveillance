@@ -222,38 +222,66 @@ class FaceDetector:
                 DeepFace.represent(
                     img_path=face_crop,
                     model_name="Facenet",
-                    detector_backend="skip",  # face is already cropped+aligned
+                    detector_backend=FACE_DETECTOR_BACKEND,  # Re-detect in crop to ensure proper eye alignment
                     enforce_detection=False,
+                    align=True,
                 )[0]["embedding"]  # type: ignore
             )
         except Exception:
             return "Unknown", 1.0, False
 
-        # ── Brute-force: Get distances to all known faces ─────
         all_distances = []
-        for name, embeddings in self.known_db.items():
-            for ref_emb in embeddings:
-                cos_dist = 1 - np.dot(query_emb, ref_emb) / (
-                    np.linalg.norm(query_emb) * np.linalg.norm(ref_emb) + 1e-9
-                )
-                all_distances.append((cos_dist, name))
+        if self._faiss_index is not None and self._faiss_index.ntotal > 0:
+            # ── FAISS: Fast O(1) Lookup ─────
+            norm = np.linalg.norm(query_emb) + 1e-9
+            q_norm = (query_emb / norm).astype(np.float32).reshape(1, -1)
+            
+            # Fetch more neighbors (e.g., 30) so we can group by person correctly
+            k = min(30, self._faiss_index.ntotal)
+            similarities, indices = self._faiss_index.search(q_norm, k)
+            
+            for i in range(k):
+                idx = indices[0][i]
+                if idx != -1:
+                    # Convert Cosine Similarity back to Cosine Distance for your threshold logic
+                    cos_dist = 1.0 - similarities[0][i]
+                    name = self._faiss_labels[idx]
+                    all_distances.append((cos_dist, name))
+        else:
+            # ── Brute-force: Fallback if FAISS is missing ─────
+            for name, embeddings in self.known_db.items():
+                for ref_emb in embeddings:
+                    cos_dist = 1 - np.dot(query_emb, ref_emb) / (
+                        np.linalg.norm(query_emb) * np.linalg.norm(ref_emb) + 1e-9
+                    )
+                    all_distances.append((cos_dist, name))
 
-        # Sort by distance (ascending)
-        all_distances.sort()
+        # ── Group by person to find their best matching image ──
+        person_best = {}
+        for dist, name in all_distances:
+            if name not in person_best or dist < person_best[name]:
+                person_best[name] = dist
+        
+        # Convert to list and sort by distance (ascending)
+        unique_distances = [(dist, name) for name, dist in person_best.items()]
+        unique_distances.sort()
 
-        if len(all_distances) < 2:
-            # Only one or no reference faces
-            best_dist, best_name = all_distances[0]
+        if not unique_distances:
+            return "Unknown", 1.0, False
+
+        if len(unique_distances) < 2:
+            # Only one person in the database (or only one matched)
+            best_dist, best_name = unique_distances[0]
             known = best_dist <= FACE_THRESHOLD
             return (best_name if known else "Unknown"), round(best_dist, 3), known
 
-        # Get top 2 matches
-        best_dist, best_name = all_distances[0]
-        second_dist, second_name = all_distances[1]
+        # Get top 2 distinct matches
+        best_dist, best_name = unique_distances[0]
+        second_dist, second_name = unique_distances[1]
 
         # ── Confidence margin check ──
-        # Best match must be 0.1 better than second best to avoid confusion
-        confidence_margin = 0.1
+        # Margin to ensure the best match is distinctly better than the second best
+        confidence_margin = 0.05
         
         if best_dist <= FACE_THRESHOLD and (second_dist - best_dist) >= confidence_margin:
             # Clear winner

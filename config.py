@@ -15,7 +15,7 @@ ENABLE_LIVENESS        = False                   # anti-spoofing — set True on
 
 # ── Loitering Detection ────────────────────────
 YOLO_MODEL        = "yolov8n.pt"         # nano = fastest; swap for yolov8s for accuracy
-LOITER_TIME_SEC   = 10                   # seconds in zone before alert
+LOITER_TIME_SEC   = 20                   # seconds in zone before alert
 LOITER_DISP_PX    = 60                   # max pixel displacement to still count as loitering
 MAX_DISAPPEARED   = 30                   # frames before centroid tracker drops an ID
 
@@ -24,14 +24,18 @@ FALL_ASPECT_RATIO = 1.1                  # W/H ratio — above this = possible f
 FALL_HIP_Y_THRESH = 0.65                 # hip landmark Y (normalised 0-1) — above = low
 FALL_CONFIRM_FRAMES = 8                  # must trigger for N consecutive frames
 
-# ── Event Engine ───────────────────────────────
-ALERT_COOLDOWN_SEC = 10                  # seconds between repeated alerts for same event
-SAVE_CLIPS         = True                # save 5-second clip when alert fires
+# ── Frame Skipping (performance optimization) ──
+FACE_SKIP_FRAMES     = 30   # run face detection every 30th frame (~1s at 30fps)
+LOITER_SKIP_FRAMES   = 5    # run loitering every 5th frame
+FALL_SKIP_FRAMES     = 8    # run fall detection every 8th frame
+
+# ── Processing Resolution ────────────────────
+FRAME_WIDTH  = 640  # keep this — optimal balance of speed vs accuracy
+FRAME_HEIGHT = 360  # keep this small for performance
+
+# ── Event Engine ─────────────────────────────
+ALERT_COOLDOWN_SEC = 20                  # seconds between repeated alerts for same event
+SAVE_CLIPS         = False               # set True for production, False for testing (avoids disk I/O lag)
 DB_PATH            = "output/events.db"
 CLIPS_DIR          = "output/clips"
 LOGS_DIR           = "output/logs"
-
-# ── Display ────────────────────────────────────
-FRAME_WIDTH  = 640
-FRAME_HEIGHT = 360
-SHOW_FPS     = True

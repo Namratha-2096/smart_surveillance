@@ -19,6 +19,7 @@ class _Database:
     def init(self):
         os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
         self._conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+        self._conn.execute("PRAGMA journal_mode=WAL;")
         self._conn.execute("""
             CREATE TABLE IF NOT EXISTS events (
                 id         INTEGER PRIMARY KEY AUTOINCREMENT,

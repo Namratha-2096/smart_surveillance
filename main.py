@@ -9,9 +9,6 @@ import os
 import threading
 from collections import deque
 
-import matplotlib
-matplotlib.use('Agg')
-
 import config
 from database           import db, log_event, fetch_recent
 from detectors.face_detector      import FaceDetector
@@ -102,10 +99,10 @@ class SurveillanceEngine:
         cached_fall     = False
         cached_fall_sig = {}
 
-        # How often each heavy module runs (1 = every frame)
-        FACE_EVERY    = 30   # SSD detection ~50-100ms — run once per second
-        LOITER_EVERY  = 5    # YOLO person detection
-        FALL_EVERY    = 8    # YOLO-pose skeleton
+        # How often each heavy module runs (from config)
+        FACE_EVERY    = config.FACE_SKIP_FRAMES
+        LOITER_EVERY  = config.LOITER_SKIP_FRAMES
+        FALL_EVERY    = config.FALL_SKIP_FRAMES
 
         while self.is_running:
             ret, frame = self.latest_ret, self.latest_frame
