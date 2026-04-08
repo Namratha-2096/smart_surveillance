@@ -103,7 +103,7 @@ class SurveillanceEngine:
         cached_fall_sig = {}
 
         # How often each heavy module runs (1 = every frame)
-        FACE_EVERY    = 30   # DeepFace is extremely heavy — run twice per second
+        FACE_EVERY    = 30   # SSD detection ~50-100ms — run once per second
         LOITER_EVERY  = 5    # YOLO person detection
         FALL_EVERY    = 8    # YOLO-pose skeleton
 
@@ -133,7 +133,11 @@ class SurveillanceEngine:
                 if fc % FACE_EVERY == 0:
                     cached_faces = self.face_det.process(frame)
                     for r in cached_faces:
-                        if not r["known"] and self._can_alert("face_unknown"):
+                        if r["name"] == "SPOOF" and self._can_alert("face_spoof"):
+                            trigger_alert("Spoofing", "Liveness check failed — possible photo/screen attack")
+                            clip = self._save_clip(frame, "face_spoof")
+                            log_event("face_spoof", detail="anti-spoofing triggered", clip_path=clip)
+                        elif not r["known"] and r["name"] != "SPOOF" and self._can_alert("face_unknown"):
                             trigger_alert("Intruder", "Unknown face detected")
                             clip = self._save_clip(frame, "face_unknown")
                             log_event("face_unknown", detail="dist=" + str(r["dist"]), clip_path=clip)

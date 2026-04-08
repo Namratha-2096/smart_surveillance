@@ -7,9 +7,11 @@
 SOURCE = 0                        # 0 = webcam  |  "path/to/video.mp4" = file
 
 # ── Face Recognition ───────────────────────────
-KNOWN_FACES_DIR   = "data/known_faces"   # one sub-folder per person
-FACE_THRESHOLD    = 0.45                 # cosine distance — lower = stricter
-HAAR_CASCADE_PATH = "haarcascade_frontalface_default.xml"  # bundled with OpenCV
+KNOWN_FACES_DIR        = "data/known_faces"      # one sub-folder per person
+FACE_THRESHOLD         = 0.42                    # cosine distance — lower = stricter (with confidence margin check)
+FACE_DETECTOR_BACKEND  = "ssd"                   # deep-learning detector (fast + accurate, replaces Haar)
+ENFORCE_DETECTION      = False                   # prevents crash if no face is in frame
+ENABLE_LIVENESS        = False                   # anti-spoofing — set True only if you have a GPU
 
 # ── Loitering Detection ────────────────────────
 YOLO_MODEL        = "yolov8n.pt"         # nano = fastest; swap for yolov8s for accuracy
